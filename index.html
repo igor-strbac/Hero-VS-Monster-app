@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title> heroj - monstrum game </title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <style>
+        .main-container {
+            display: flex;
+        }
+
+        .igrac {
+            border: 2px solid darkgreen;
+            color: darkgreen;
+            width: 49%;
+            height: 100px;
+            text-align: center;
+        }
+
+        .monstrum {
+            border: 2px solid darkred;
+            color: darkred;
+            width: 49%;
+            height: 100px;
+            text-align: center;
+        }
+
+        .akcije-container {
+            margin: 0 auto;
+            border: 2px solid black;
+            width: 300px;
+        }
+
+        .player-action {
+            border: 2px solid darkgreen;
+            margin: 2px;
+        }
+
+        .monster-action {
+            border: 2px solid darkred;
+            margin: 2px;
+        }
+
+        .bar {
+            background-color: orange;
+            width: 90%;
+            height: 20px;
+            margin: 0 auto;
+        }
+
+        .current-bar {
+            height: 100%;
+            background-color: green;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="main-container">
+        <!-- kada nam je u js. ovako playerCurrentHealth onda u html-u mora biti ispisano ovako player-current-health-->
+        <player-data player-class="igrac" :player-current-health="igracZivot.current"
+                     :player-max-health="igracZivot.max"></player-data>
+        <player-data player-class="monstrum" :player-current-health="monstrumZivot.current"
+                     :player-max-health="monstrumZivot.max"></player-data>
+    </div>
+    <div class="akcije-container">
+        <div class="akcija" v-for="akcija in igracAkcije">
+            <!-- akcija u data/return nizovi akcija -->
+            <button @click="igracOdigraj(akcija.metoda)">{{ akcija.naziv }}</button>
+        </div>
+    </div>
+    <div>
+        <div class="istorija-akcija"
+             :class="{'player-action': akcija.who =='player', 'monster-action': akcija.who == 'monster'}"
+             v-for="akcija in istorija">
+            {{ akcija.action }} - {{ akcija.number }} - {{ akcija.who }}
+        </div>
+    </div>
+</div>
+
+<script type="text/x-template" id="player-data">
+    <div :class="playerClass">
+        <div>
+            {{ playerCurrentHealth }} / {{ playerMaxHealth }}
+        </div>
+        <div class="bar">
+            <div class="current-bar" :style="{width: trenutniProcenat}"></div>
+        </div>
+    </div>
+
+</script>
+
+<script>
+    Vue.component('player-data', {
+        template: '#player-data',
+        props: ["playerClass", "playerCurrentHealth", "playerMaxHealth"],
+        computed: {
+            trenutniProcenat() {
+                if (this.playerCurrentHealth <= 0) {
+                    return '0%'
+                }
+                return "(this.playerCurrentHealth / this.playerMaxHealth * 100) + '%';"
+            }
+
+        }
+    })
+
+    var mainVue = new Vue({
+        el: "#app",
+        data: function () {
+            return {
+                igracZivot: {
+                    current: 45,
+                    max: 45
+                },
+                monstrumZivot: {
+                    current: 50,
+                    max: 50
+                },
+                igracAkcije: [
+                    {naziv: "Slab napad", metoda: "igracSlabNapad"},
+                    {naziv: "Jak napad", metoda: "igracJakNapad"},
+                    {naziv: "Zavoj", metoda: "igracZavoj"}
+                ],
+                monstrumAkcije: [
+                    {naziv: "Kandza", metoda: "monstrumKandza"},
+                    {naziv: "Izdrzljivost", metoda: "monstrumIzdrzljivost"}
+                ],
+                istorija: []
+            }
+        },
+        methods: {
+            igracSlabNapad() {
+                // udara monstruma jacinom od 9-14
+                var jacina = Math.floor(Math.random() * 5) + 9;
+                this.monstrumZivot.current -= jacina;
+                this.dodajIstoriju('igracSlabNapad', jacina, 'player');
+
+            },
+            igracJakNapad() {
+                // udara monstruma jacinom od 3-23
+                var jacina = Math.floor(Math.random() * 20) + 3;
+                this.monstrumZivot.current -= jacina;
+                this.dodajIstoriju('igracJakNapad', jacina, 'player');
+            },
+            igracZavoj() {
+                // igrac se leci za 5 - 20 zdravlja
+                var jacina = Math.floor(Math.random() * 15) + 5;
+                this.igracZivot.current += jacina;
+                if (this.igracZivot.current > this.igracZivot.max) {
+                    this.igracZivot.current = this.igracZivot.max
+                }
+                this.dodajIstoriju('igracZavoj', jacina, 'player');
+            },
+            monstrumKandza() {
+                // udara igraca jacinom od 2-25
+                var jacina = Math.floor(Math.random() * 23) + 2;
+                this.igracZivot.current -= jacina;
+                this.dodajIstoriju('monstrumKandza', jacina, 'monster');
+            },
+            monstrumIzdrzljivost() {
+                // monstrum se leci za 7-16
+                var jacina = Math.floor(Math.random() * 9) + 7;
+                this.monstrumZivot.current += jacina;
+                if (this.monstrumZivot.current > this.monstrumZivot.max) {
+                    this.monstrumZivot.current = this.monstrumZivot.max
+                }
+                this.dodajIstoriju('monstrumIzdrzljivost', jacina, 'monster');
+            },
+            igracOdigraj(akcija) {
+                //posto je string moramo pozvati izmedju [], jer this.akcija ne postoji ovako!
+                this[akcija]()
+                //posle igraca monstrum automatski odigrava
+                this.monstrumOdigraj();
+            },
+            monstrumOdigraj() {
+                // nasumicno bira koju akciju ce iskoristiti dok je kod igraca druga logika jer mi na dugme biramo akcije
+                var r = Math.floor(Math.random() * this.monstrumAkcije.length);
+                var akcija = this.monstrumAkcije[r].metoda;
+                this[akcija]();
+                // if (this.igracZivot.current <= 0) {
+                //     this.igracZivot.current = 0;
+                // }
+            },
+            dodajIstoriju(akcija, jacina, ko) {
+                this.istorija.push({
+                    action: akcija,
+                    number: jacina,
+                    who: ko
+                })
+            }
+        }
+    })
+</script>
+
+</body>
+</html>
+
+<!--
+1. Pravimo tri diva u glavnom. Jedan za igraca, jedan za monstruma i jedan za akcije i pravimo im stilizaciju.
+2. u Main komponenti pravimo njihove podatke kao i naz akcija
+3. zatim akcije iz niza pravimo u methods delu
+4. u divu sa akcijama renderujemo akcije koje smo napravili
+5. pravimo metodu igrac odigraj (akciju - koja je string) koja okida akciju i smestamo renderovanu akciju u button element
+ TIME SMO ZAVRSILI IGRACEVE METODE I SADA ISTO RADIMO ZA MONSTRUMA
+
+6. pravimo niz sa akcijama za monstruma i definisemo ih u methods
+7. pravimo istorija podatak kako bi smo videli ko je povukao koje poteze, div za istoriju i metodu dodajIstoriju()
+8. pozivamo istoriju u svakoj metodi
+9. u istoriju dodajemo i :class koja nam dodaje klase u zavisnosti ko je pozvao istoriju u trenutku, a zatim i pravimo te klase (player, monster)
+
+SADA SVE RADI
+
+10 posto su nam prva dva diva ista
+                   <div class="igrac">
+                       {{ igracZivot }}
+                   </div>
+                   <div class="monstrum">
+                     {{ monstrumZivot }}
+                   </div>
+
+od toga pravimo komponentu. (koristice nam kasnije mnogo vise zbog svoj computed svojstva
+kojim mozemo da napravimo action bar i sva ostala izracunavana svojstva)
+
+11. i brisemo ovaj deo, zamenjuje ga
+    <player-data player-class="igrac" player-current-health="igracZivot"></player-data>
+12. Pravimo prezentaciju health bar-a
+tako sto dodajemo / {{ playerMaxHealth }} i menjamo igracZivot iz    igracZivot: 39, u objekat
+            igracZivot: {
+                 current: 45,
+                 max: 45
+            },
+sada moramo i ostale metode malo da promenimo jer smo ranije menjali staticke podatke iz npr:
+
+            igracSlabNapad() {
+                // udara monstruma jacinom od 9-14
+                var jacina = Math.floor(Math.random() * 5) + 9;
+                this.monstrumZivot -= jacina;
+                this.dodajIstoriju('igracSlabNapad', jacina, 'player');
+            },
+u:
+
+
+
+
+
+-->
